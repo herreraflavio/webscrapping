@@ -37,8 +37,13 @@ async function googleSearch(query) {
 
     response.data.tasks[0].result[0].items.forEach((item) => {
       console.log("Results found for", query);
-      console.log(item.url);
-      urls.push(item.url);
+
+      if (item.url != undefined) {
+        console.log(item.url);
+        urls.push(item.url);
+      } else {
+        console.log("No results found for", query);
+      }
     });
 
     return urls;
@@ -48,16 +53,15 @@ async function googleSearch(query) {
   }
 }
 
-async function performSearches() {
+async function performSearches(start, limit) {
   const baseQueries = [
     { query: `"arpa order no `, suffix: `"`, numPosition: "middle" },
     { query: `"arpa order `, suffix: `"`, numPosition: "middle" },
     { query: `"ao `, suffix: `" arpa`, numPosition: "middle" },
   ];
   const results = [];
-  const limit = 903;
 
-  for (let num = 901; num <= limit; num++) {
+  for (let num = start; num <= limit; num++) {
     const searchPromises = baseQueries.map(
       ({ query, suffix = "", numPosition }) => {
         let searchQuery = query;
@@ -79,19 +83,13 @@ async function performSearches() {
   return results;
 }
 
-function getCleanFilename(url) {
-  const urlObject = new URL(url);
-  const urlParams = new URLSearchParams(urlObject.search);
-  let filename = urlParams.get("name");
-
-  if (!filename) {
-    filename = url.split("/").pop().split("?")[0].split("#")[0];
-  }
+function getCleanFilename(i, counter) {
+  const filename = `file${i}-${counter}.pdf`;
 
   return filename;
 }
 
-async function downloadPdf(url, folder) {
+async function downloadPdf(url, folder, i, counter) {
   try {
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });
@@ -103,7 +101,7 @@ async function downloadPdf(url, folder) {
       responseType: "stream",
     });
 
-    const filename = getCleanFilename(url);
+    const filename = getCleanFilename(i, counter);
     const filePath = path.join(folder, filename);
 
     const writer = fs.createWriteStream(filePath);
@@ -118,21 +116,23 @@ async function downloadPdf(url, folder) {
   }
 }
 
-async function processUrls(nestedUrls) {
+async function processUrls(nestedUrls, start) {
   console.log("Processing URLs...");
   console.log(nestedUrls);
   for (let i = 0; i < nestedUrls.length; i++) {
-    console.log("Processing folder", i + 901);
+    console.log("Processing folder", i + start);
     const folderName = path.join(
       __dirname,
-      `output/pdfs-updated/folder${i + 901}`
+      `output/pdfs-updated/folder${i + start}`
     );
+    let counter = 0;
     for (let urls of nestedUrls[i]) {
-      console.log("Processing URLs for folder", i + 901);
+      counter++;
+      console.log("Processing URLs for folder", i + start);
       console.log("Processing URL", urls);
       if (urls.endsWith(".pdf")) {
         console.log("Downloading", urls);
-        await downloadPdf(urls, folderName).then(() => {
+        await downloadPdf(urls, folderName, i, counter).then(() => {
           console.log(`Downloaded ${urls} into ${folderName}`);
         });
       }
@@ -141,7 +141,9 @@ async function processUrls(nestedUrls) {
 }
 
 (async () => {
-  const results = await performSearches();
+  const start = 929;
+  const limit = 1000;
+  const results = await performSearches(start, limit);
 
-  await processUrls(results);
+  await processUrls(results, start);
 })();
