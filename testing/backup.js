@@ -1,4 +1,8 @@
+// const fs = require("fs");
+// const fs = require("fs").promises; // Ensure fs promises are correctly imported
 const fs = require("fs");
+const fsp = fs.promises; // Use this for promise-based async operations
+
 const axios = require("axios");
 const path = require("path");
 const { URL, URLSearchParams } = require("url");
@@ -116,12 +120,48 @@ function getCleanFilename(i, counter) {
 //   }
 // }
 async function downloadPdf(url, folder, i, counter) {
+  const filename = getCleanFilename(i, counter);
+  const filePath = path.join(folder, filename);
+
   try {
-    console.log("Downloading", url);
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+    }
+
+    const response = await axios({
+      method: "GET",
+      url: url,
+      responseType: "stream",
+      timeout: 30000, // Timeout set for 30 seconds
+    });
+
+    const writer = fs.createWriteStream(filePath);
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on("finish", () => {
+        console.log(`File downloaded successfully: ${filePath}`);
+        resolve(`Downloaded: ${filePath}`);
+      });
+      writer.on("error", (err) => {
+        console.error(`Error writing file: ${filePath}`, err);
+        writer.close(); // Ensure the stream is closed on error.
+        reject(`Failed to download: ${filePath}`);
+      });
+    });
   } catch (error) {
     console.error(`Error downloading from ${url}:`, error);
+    // Return an error message instead of throwing the error, to continue processing subsequent URLs.
+    return `Error downloading from ${url}: ${error.message}`;
   }
 }
+// async function downloadPdf(url, folder, i, counter) {
+//   try {
+//     console.log("Downloading", url);
+//   } catch (error) {
+//     console.error(`Error downloading from ${url}:`, error);
+//   }
+// }
 
 async function processUrls(nestedUrls, start) {
   console.log("Processing URLs...");
@@ -147,10 +187,41 @@ async function processUrls(nestedUrls, start) {
   }
 }
 
-(async () => {
-  const start = 1001;
-  const limit = 1100;
-  const results = await performSearches(start, limit);
+// (async () => {
+//   const start = 1201;
+//   const limit = 1203;
+//   const results = await performSearches(start, limit);
 
-  await processUrls(results, start);
+//   await processUrls(results, start);
+// })();
+
+(async () => {
+  const start = 1701;
+  const limit = 2200;
+  try {
+    const results = await performSearches(start, limit);
+    await fsp.writeFile("searchResults.json", JSON.stringify(results));
+    console.log("Results saved to searchResults.json");
+  } catch (error) {
+    console.error("Failed to perform search or save results:", error);
+  }
 })();
+
+// const readSavedResultsPathName = "searchResults.json";
+// const readSavedResultsPathName2 = "searchResultsBackUp.json";
+
+// (async () => {
+//   try {
+//     // Read the JSON file containing the URLs
+//     const data = await fsp.readFile(readSavedResultsPathName, "utf8");
+//     const results = JSON.parse(data); // Parse the JSON data into an array
+
+//     const start = 1201; // Start value used for folder naming or similar logic in processUrls
+
+//     // Process the URLs read from the JSON file
+//     await processUrls(results, start);
+//     console.log("URLs processed successfully.");
+//   } catch (error) {
+//     console.error("Failed to read or process URLs:", error);
+//   }
+// })();
