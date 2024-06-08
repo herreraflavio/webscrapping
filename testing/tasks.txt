@@ -1,0 +1,15 @@
+These are the next tasks we discussed today:
+
+- extend to also include .txt documents (done)
+
+- keep top 20 documents instead of top 10 (done)
+
+- document every step of the code for co-authors with explanations 
+
+- edit the code to make it more stable to timeouts (done)
+
+- Some document add something after '.pdf' (done) 
+
+- For the remaining extensions (apart from .pdf and .txt), generate a document that keeps the URLs in a .txt. 
+  This is relevant for many of the Google Books Christian has downloaded in the past. 
+  As long as the URLs are stored in a .txt file, Christian will take over the task. (done)
