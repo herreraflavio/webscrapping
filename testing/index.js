@@ -5,6 +5,7 @@ const path = require("path");
 require("dotenv").config();
 const TOKEN = process.env.TOKEN;
 
+// Handling uncaught exceptions and promise rejections
 process.on("uncaughtException", (error) => {
   console.error("Uncaught Exception:", error);
 });
@@ -38,7 +39,10 @@ async function googleSearch(query) {
     );
 
     let urls = [];
-    if (!response.data.tasks[0].result[0].items) {
+    if (
+      !response.data.tasks[0].result[0].items ||
+      response.data.tasks[0].result[0].spell != null
+    ) {
       console.log("No results found for", query);
       return [];
     }
@@ -116,6 +120,7 @@ async function downloadFile(url, folder, i, counter, fileType) {
       },
     });
 
+    // MIME Type Check
     const contentType = response.headers["content-type"];
     if (
       !contentType.includes("application/pdf") &&
@@ -168,6 +173,7 @@ async function processUrls(nestedUrls, start, outputPath) {
       counter++;
       console.log("Processing URLs for folder", i + start);
       console.log("Processing URL", urls);
+      // Extract file extension ignoring query parameters
       const urlPath = new URL(urls).pathname;
       const fileExtension = path.extname(urlPath);
       if (fileExtension.toLowerCase() == ".pdf") {
@@ -198,7 +204,7 @@ const outputPath = "test/pdfs-updated";
 (async () => {
   try {
     const start = 2201;
-    const limit = 2205;
+    const limit = 2700;
 
     const results = await performSearches(start, limit);
     // const data = await fsp.readFile(readSavedResultsPathName3, "utf8");
